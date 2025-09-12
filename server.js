@@ -10,10 +10,10 @@ console.log("HF API Key loaded:", process.env.HF_API_KEY ? "✅" : "❌");
 
 const app = express();
 const upload = multer({ dest: "uploads/" });
-function parsePDF(buffer) {
-  // require inside the function, so top-level test code in pdf-parse never runs
-  const pdfParse = require("pdf-parse");
-  return pdfParse(buffer);
+async function parsePDF(buffer) {
+  // dynamically import pdf-parse only when needed
+  const { default: pdfParse } = await import("pdf-parse");
+  return pdfParse(buffer); // pdfParse returns a function
 }
 app.use(cors());
 // app.use(express.json());   // parses application/json
@@ -92,6 +92,7 @@ app.post("/upload", upload.single("resume"), async (req, res) => {
 
     const dataBuffer = fs.readFileSync(req.file.path);
     const pdfData = await parsePDF(dataBuffer);
+    
     const resumeText = pdfData.text;
     console.log(resumeText);
     // const questions = await getAIQuestions(resumeText);
