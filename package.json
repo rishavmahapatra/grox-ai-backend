@@ -4,7 +4,8 @@
   "main": "server.js",
   "type": "module",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "postinstall": "sed -i 's/let isDebugMode = true/let isDebugMode = false/' node_modules/pdf-parse/index.js"
   },
   "keywords": [],
   "author": "",
