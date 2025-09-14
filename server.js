@@ -4,9 +4,11 @@ import multer from "multer";
 import fs from "fs";
 import fetch from "node-fetch";
 import dotenv from "dotenv";
+import { GoogleGenAI } from "@google/genai";
 
 dotenv.config();
 console.log("HF API Key loaded:", process.env.HF_API_KEY ? "✅" : "❌");
+const ai = new GoogleGenAI({});
 
 const app = express();
 const upload = multer({ dest: "uploads/" });
@@ -42,45 +44,30 @@ async function getAIQuestions(resumeText) {
   const prompt = `Generate 10 interview questions based on this resume. 
   Please format the response as a numbered list from 1 to 10:\n${resumeText}`;
 
-  const response = await fetch("https://router.huggingface.co/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${process.env.HF_API_KEY}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model: "HuggingFaceTB/SmolLM3-3B:hf-inference",
-      messages: [
-        {
-          role: "user",
-          content: prompt,
-        },
-      ],
-      max_tokens: 600,
-    }),
+  try {
+    const response = await ai.models.generateContent({
+    model: "gemini-2.5-flash",
+    contents: prompt,
   });
+    const rawText = response.text || ""; // 🚀 Correctly access the generated text
 
-  if (!response.ok) {
-    const text = await response.text();
-    throw new Error(`HF API Error ${response.status}: ${text}`);
+    // 🔹 Parse numbered list into an array of questions
+    const questionsArray = rawText
+      .split(/\n+/)
+      .filter(line => /^\d+\./.test(line))
+      .map((line, idx) => {
+        const questionText = line.replace(/^\d+\.\s*/, "").trim();
+        return { id: idx + 1, question: questionText };
+      });
+
+    return questionsArray.length > 0
+      ? questionsArray
+      : [{ id: 1, question: rawText.trim() }];
+      
+  } catch (error) {
+    console.error("❌ Error generating content with Gemini:", error);
+    throw new Error("Failed to generate questions.");
   }
-
-  const data = await response.json();
-  const rawText = data?.choices?.[0]?.message?.content || "";
-
-  // 🔹 Parse numbered list into array of questions
-  const questionsArray = rawText
-    .split(/\n+/) // split by newlines
-    .filter(line => /^\d+\./.test(line)) // keep only numbered lines
-    .map((line, idx) => {
-      // remove "1. " etc
-      const questionText = line.replace(/^\d+\.\s*/, "").trim();
-      return { id: idx + 1, question: questionText };
-    });
-
-  return questionsArray.length > 0
-    ? questionsArray
-    : [{ id: 1, question: rawText.trim() }];
 }
 
 
@@ -95,10 +82,10 @@ app.post("/upload", upload.single("resume"), async (req, res) => {
     
     const resumeText = pdfData.text;
     console.log(resumeText);
-    // const questions = await getAIQuestions(resumeText);
-    // res.json(questions);
-    const data = JSON.parse(fs.readFileSync("./mockData.json", "utf-8"));
-    res.json(data);
+    const questions = await getAIQuestions(resumeText);
+    res.json(questions);
+    // const data = JSON.parse(fs.readFileSync("./mockData.json", "utf-8"));
+    // res.json(data);
   } catch (err) {
     console.error("❌ Error in /upload:", err);
     res.status(500).json({ error: err.message });
