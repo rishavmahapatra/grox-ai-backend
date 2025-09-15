@@ -113,6 +113,26 @@ app.post("/signin", express.json(), (req, res) => {
 app.get("/", (req, res) => {
   res.send("Server is running ✅");
 });
+app.post("/get_answer", express.json(), async (req, res) => {
+  try {
+    const { question } = req.body;
+    if (!question) {
+      return res.status(400).json({ error: "Question is required" });
+    }
+    const prompt = `You are a helpful front-end UI/UX designer assistant. Provide a concise and relevant answer to the interview question below. 
+    Keep the response focused and avoid unnecessary details.\nQuestion: ${question}`;
+
+    const response = await ai.models.generateContent({
+      model: "gemini-2.5-flash",
+      contents: prompt,
+    });
+    const answer = response.text || "No answer generated.";
+    res.json({ answer: answer.trim() });
+  } catch (err) {
+    console.error("❌ Error in /get_answer:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, "0.0.0.0", () => {
