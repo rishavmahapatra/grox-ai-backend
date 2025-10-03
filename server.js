@@ -5,6 +5,7 @@ import fs from "fs";
 import fetch from "node-fetch";
 import dotenv from "dotenv";
 import { GoogleGenAI } from "@google/genai";
+import * as pdfjsLib from "pdfjs-dist/legacy/build/pdf.mjs";
 
 dotenv.config();
 console.log("HF API Key loaded:", process.env.HF_API_KEY ? "✅" : "❌");
@@ -13,12 +14,21 @@ const ai = new GoogleGenAI({});
 const app = express();
 const upload = multer({ dest: "uploads/" });
 async function parsePDF(buffer) {
-  // dynamically import pdf-parse only when needed
-  const { default: pdfParse } = await import("pdf-parse");
-  return pdfParse(buffer); // pdfParse returns a function
+  const uint8Array = new Uint8Array(buffer);
+  const pdf = await pdfjsLib.getDocument({ data: uint8Array }).promise;
+  let text = "";
+
+  for (let i = 1; i <= pdf.numPages; i++) {
+    const page = await pdf.getPage(i);
+    const content = await page.getTextContent();
+    text += content.items.map(item => item.str).join(" ") + "\n";
+  }
+
+  return { text };
 }
+
 app.use(cors());
-// app.use(express.json());   // parses application/json
+app.use(express.json());   // parses application/json
 app.use(express.urlencoded({ extended: true })); // parses x-www-form-urlencoded
 
 // 🔹 Function to query Hugging Face router API
@@ -43,8 +53,8 @@ const mockUsers = [
 async function getAIQuestions(resumeText) {
   const prompt = `Generate 10 interview questions and answers based on this resume in strict JSON format:
 [
-  { "id": 1, "question": "...", "answer": "..." },
-  { "id": 2, "question": "...", "answer": "..." },
+  { "id": 1, "question": "...", "answer": "..."},
+  { "id": 2, "question": "...", "answer": "..."},
   ...
 ]:\n${resumeText}`;
 
