@@ -203,7 +203,7 @@ app.post("/get_answer", express.json(), async (req, res) => {
     Produce the following output in clean Markdown:
 
     ### Explanation
-     Provide relevant answer and explain the concept in simple, accurate interview-focused terms.`;
+     Provide supporting answer and explain the concept in simple, accurate interview-focused terms.`;
     
     // const prompt = `You are a helpful front-end/software developer assistant. Provide a concise and relevant answer to the interview question below.
     // Keep the response focused and avoid unnecessary details.\nQuestion: ${question}`;
