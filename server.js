@@ -4,7 +4,6 @@ import multer from "multer";
 import { ObjectId } from "mongodb";
 import dotenv from "dotenv";
 import { GoogleGenAI } from "@google/genai";
-import * as pdfjsLib from "pdfjs-dist/legacy/build/pdf.mjs";
 import { connectDB } from "./db.js";
 import pdf from "pdf-parse";
 
