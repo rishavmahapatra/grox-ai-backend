@@ -6,6 +6,7 @@ import dotenv from "dotenv";
 import { GoogleGenAI } from "@google/genai";
 import * as pdfjsLib from "pdfjs-dist/legacy/build/pdf.mjs";
 import { connectDB } from "./db.js";
+import pdf from "pdf-parse";
 
 
 dotenv.config();
@@ -15,18 +16,23 @@ const ai = new GoogleGenAI({});
 const app = express();
 const upload = multer();
 // { dest: "uploads/" }
+// async function parsePDF(buffer) {
+//   const uint8Array = new Uint8Array(buffer);
+//   const pdf = await pdfjsLib.getDocument({ data: uint8Array }).promise;
+//   let text = "";
+
+//   for (let i = 1; i <= pdf.numPages; i++) {
+//     const page = await pdf.getPage(i);
+//     const content = await page.getTextContent();
+//     text += content.items.map((item) => item.str).join(" ") + "\n";
+//   }
+
+//   return { text };
+// }
+
 async function parsePDF(buffer) {
-  const uint8Array = new Uint8Array(buffer);
-  const pdf = await pdfjsLib.getDocument({ data: uint8Array }).promise;
-  let text = "";
-
-  for (let i = 1; i <= pdf.numPages; i++) {
-    const page = await pdf.getPage(i);
-    const content = await page.getTextContent();
-    text += content.items.map((item) => item.str).join(" ") + "\n";
-  }
-
-  return { text };
+  const data = await pdf(buffer);
+  return { text: data.text };
 }
 
 app.use(cors());
